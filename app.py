@@ -79,27 +79,40 @@ def run_bertopic_model(texts):
     return topic_model, topics
 
 def main():
-    st.title("\U0001F4CA Dashboard Analisis Sentimen & Topik Xiaomi")
-    uploaded_file = st.file_uploader("Unggah file CSV dengan kolom 'timestamp' & 'text'", type="csv")
+    st.set_page_config(layout="wide")
+    st.title("Analisis Sentimen dan Topik pada Cuitan Twitter")
+    uploaded_file = st.file_uploader("Unggah file CSV", type="csv")
 
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
+
         if set(df.columns) >= {"timestamp", "text"}:
             norm_dict = load_normalization_dict()
             stopwords = load_stopwords()
-            df["clean_text"] = df["text"].apply(lambda x: clean_text(x, norm_dict, stopwords))
 
-            rel_tokenizer, rel_model = load_relevansi_model()
-            df["relevan"] = predict_relevansi(df["clean_text"], rel_tokenizer, rel_model)
-            df = df[df["relevan"] == 1]
+            with st.spinner("Membersihkan teks..."):
+                df["clean_text"] = df["text"].apply(lambda x: clean_text(x, norm_dict, stopwords))
+            st.toast("Teks berhasil dibersihkan ✅")
 
-            sent_tokenizer, sent_model, sent_names = load_sentiment_model()
-            df["sentiment"] = predict_sentiment_batch(df["clean_text"], sent_tokenizer, sent_model, sent_names)
+            with st.spinner("Memprediksi relevansi..."):
+                rel_tokenizer, rel_model = load_relevansi_model()
+                df["relevan"] = predict_relevansi(df["clean_text"], rel_tokenizer, rel_model)
+                df = df[df["relevan"] == 1]
+            st.toast("Relevansi diprediksi ✅")
 
-            topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
-            df["topic_id"] = topics
-            topic_info = topic_model.get_topic_info()
-            topic_dict = topic_model.get_topics()
+            with st.spinner("Memprediksi sentimen..."):
+                sent_tokenizer, sent_model, sent_names = load_sentiment_model()
+                df["sentiment"] = predict_sentiment_batch(
+                    df["clean_text"], sent_tokenizer, sent_model, sent_names
+                )
+            st.toast("Sentimen diprediksi ✅")
+
+            with st.spinner("Menjalankan pemodelan topik..."):
+                topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
+                df["topic_id"] = topics
+                topic_info = topic_model.get_topic_info()
+                topic_dict = topic_model.get_topics()
+            st.toast("Topik berhasil dipetakan ✅")
 
             keyword_map = {
                 topic: ", ".join([w for w, _ in topic_dict[topic][:8]])
@@ -107,30 +120,19 @@ def main():
             }
             df["keywords"] = df["topic_id"].map(keyword_map)
 
-            col1, col2 = st.columns(2)
-            with col1:
-                selected_sentiment = st.selectbox("Filter Sentimen", options=["All"] + sent_names)
-            with col2:
-                topic_options = df["topic_id"].unique().tolist()
-                selected_topic = st.selectbox("Filter Topik", options=["All"] + topic_options)
+            st.markdown("### Data dengan Prediksi")
+            st.dataframe(df[["timestamp", "text", "clean_text", "relevan", "sentiment", "topic_id", "keywords"]])
 
-            filtered_df = df.copy()
-            if selected_sentiment != "All":
-                filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
-            if selected_topic != "All":
-                filtered_df = filtered_df[filtered_df["topic_id"] == selected_topic]
+            with st.expander("Visualisasi Topik"):
+                fig = topic_model.visualize_barchart(top_n_topics=10)
+                st.plotly_chart(fig, use_container_width=True)
 
-            st.dataframe(filtered_df[["timestamp", "text", "sentiment", "topic_id", "keywords"]])
-
-            with st.expander("Lihat Ringkasan Topik"):
-                summary_df = topic_info.rename(columns={"Topic": "topic_id", "Count": "docs_count"})
-                summary_df["keywords"] = summary_df["topic_id"].map(keyword_map)
-                st.dataframe(summary_df[["topic_id", "docs_count", "keywords"]])
         else:
-            st.error("Kolom 'timestamp' dan 'text' tidak ditemukan.")
+            st.warning("File CSV harus memiliki kolom: timestamp dan text")
 
 if __name__ == "__main__":
     main()
+
 
 
 
