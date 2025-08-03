@@ -1,7 +1,7 @@
 streamlit
+matplotlib
 pandas
 numpy
-matplotlib
 seaborn
 torch
 transformers
@@ -9,3 +9,4 @@ bertopic
 scikit-learn
 umap-learn
 hdbscan
+
