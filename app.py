@@ -274,115 +274,105 @@ def main():
     st.title("\U0001F4D1 Analisis Sentimen & Topik Berbasis IndoBERT + BERTopic")
     uploaded_file = st.file_uploader("Unggah file CSV (timestamp & text)", type="csv")
 
-    if uploaded_file is not None:
-        try:
-            df = pd.read_csv(uploaded_file, encoding='utf-8')
-        except UnicodeDecodeError:
-            df = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
+    if "processed_df" not in st.session_state:
+        if uploaded_file is not None:
+            try:
+                df = pd.read_csv(uploaded_file, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
 
-        if set(df.columns) >= {"timestamp", "text"}:
-            st.success("✅ Format kolom valid.")
-            norm_dict = load_normalization_dict()
-            stopwords = load_stopwords()
-            tokenizer, model, class_names = load_sentiment_model()
+            if set(df.columns) >= {"timestamp", "text"}:
+                st.success("✅ Format kolom valid.")
+                norm_dict = load_normalization_dict()
+                stopwords = load_stopwords()
+                tokenizer, model, class_names = load_sentiment_model()
 
-            st.info("🔧 Membersihkan teks...")
-            df["clean_text"] = df["text"].apply(lambda x: clean_text(x, norm_dict, stopwords))
-            st.success("✅ Pembersihan selesai")
+                st.info("🔧 Membersihkan teks...")
+                df["clean_text"] = df["text"].apply(lambda x: clean_text(x, norm_dict, stopwords))
+                st.success("✅ Pembersihan selesai")
 
-            st.info("📌 Memfilter teks relevan...")
-            relevansi_tokenizer, relevansi_model = load_relevansi_model()
-            df["relevan"] = predict_relevansi(df["clean_text"].tolist(), relevansi_tokenizer, relevansi_model)
-            # Keep only relevan rows
-            df = df[df["relevan"] == 1].reset_index(drop=True)
-            st.success(f"✅ Ditemukan {len(df)} teks relevan dari {len(df) + df['relevan'].value_counts().get(0, 0)} total baris data.")
+                st.info("📌 Memfilter teks relevan...")
+                relevansi_tokenizer, relevansi_model = load_relevansi_model()
+                df["relevan"] = predict_relevansi(df["clean_text"].tolist(), relevansi_tokenizer, relevansi_model)
+                df = df[df["relevan"] == 1].reset_index(drop=True)
+                st.success(f"✅ Ditemukan {len(df)} teks relevan dari {len(df) + df['relevan'].value_counts().get(0, 0)} total baris data.")
 
-            st.info("⏳ Memproses prediksi sentimen...")
-            df["sentiment"] = predict_sentiment_batch(df["clean_text"].tolist(), tokenizer, model, class_names)
-            st.success("✅ Prediksi sentimen selesai")
+                st.info("⏳ Memproses prediksi sentimen...")
+                df["sentiment"] = predict_sentiment_batch(df["clean_text"].tolist(), tokenizer, model, class_names)
+                st.success("✅ Prediksi sentimen selesai")
 
-            st.info("⏳ Memproses pemodelan topik...")
-            topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
-            df["topic_id"] = topics
-            st.success("✅ Pemodelan topik selesai")
+                st.info("⏳ Memproses pemodelan topik...")
+                topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
+                df["topic_id"] = topics
+                st.success("✅ Pemodelan topik selesai")
 
-            ## VISUALISASI DAN OUTPUT
-            
-            # Visualisasi Pie Chart Sentimen
-            # st.subheader("📊 Distribusi Sentimen (Pie Chart)")
-            # plot_sentiment_pie(df)
+                # Store in session_state
+                st.session_state.processed_df = df
+                st.session_state.topic_model = topic_model
+                st.session_state.class_names = class_names
+            else:
+                st.error("❌ File harus memiliki kolom: timestamp dan text")
 
-            # Visualisasi Bar Chart Sentimen
-            st.subheader("📊 Distribusi Sentimen (Bar Chart Interaktif)")
-            plot_sentiment_bar(df)
+    # === Reuse Processed Data and Plot ===
+    if "processed_df" in st.session_state:
+        df = st.session_state.processed_df
+        topic_model = st.session_state.topic_model
+        class_names = st.session_state.class_names
 
-            # === Tampilkan Sampel 5 Teks untuk Setiap Sentimen ===
-            st.subheader("📝 Contoh Teks Hasil Prediksi Berdasarkan Sentimen")
+        st.subheader("📊 Distribusi Sentimen (Bar Chart Interaktif)")
+        plot_sentiment_bar(df)
 
-            for sent in class_names:  # ['negatif', 'netral', 'positif']
-                st.markdown(f"**Sentimen: {sent.capitalize()}**")
-                sample_df = df[df["sentiment"] == sent].sample(5)[["timestamp", "text"]]
-                if not sample_df.empty:
-                    st.dataframe(sample_df.reset_index(drop=True))
-                else:
-                    st.write("_Tidak ada data untuk sentimen ini._")
+        st.subheader("📝 Contoh Teks Hasil Prediksi Berdasarkan Sentimen")
+        for sent in class_names:
+            st.markdown(f"**Sentimen: {sent.capitalize()}**")
+            sample_df = df[df["sentiment"] == sent].sample(5)[["timestamp", "text"]]
+            if not sample_df.empty:
+                st.dataframe(sample_df.reset_index(drop=True))
+            else:
+                st.write("_Tidak ada data untuk sentimen ini._")
 
+        plot_sentiment_per_topic(df, topic_model)
 
-            # Visualisasi Distribusi Sentimen per Topik
-            plot_sentiment_per_topic(df, topic_model)
+        st.subheader("📋 Ringkasan Topik")
+        def extract_keywords(topic_model, n=8):
+            topics_dict = topic_model.get_topics()
+            keyword_map = {}
+            for topic_id, words in topics_dict.items():
+                keyword_list = [word for word, _ in words[:n]]
+                keyword_map[topic_id] = ", ".join(keyword_list)
+            return keyword_map
 
-            # Tampilkan tabel topik
-            st.subheader("📋 Ringkasan Topik")
-            # Extract clean keywords from topic_model
-            def extract_keywords(topic_model, n=8):
-                topics_dict = topic_model.get_topics()
-                keyword_map = {}
-                for topic_id, words in topics_dict.items():
-                    keyword_list = [word for word, _ in words[:n]]
-                    keyword_map[topic_id] = ", ".join(keyword_list)
-                return keyword_map
+        topic_info = topic_model.get_topic_info()
+        keyword_map = extract_keywords(topic_model)
+        topic_info["keywords"] = topic_info["Topic"].map(keyword_map)
+        topic_info = topic_info[["Topic", "keywords", "Count"]].rename(columns={
+            "Topic": "cluster_id",
+            "Count": "docs_count"
+        })
+        st.dataframe(topic_info)
 
-            # Get cleaned topic info
-            topic_info = topic_model.get_topic_info()
-            keyword_map = extract_keywords(topic_model)
+        # === Interactive Filtered Table ===
+        st.subheader("📋 Dataset dengan Label")
 
-            # Add a 'keywords' column from the cleaned map
-            topic_info["keywords"] = topic_info["Topic"].map(keyword_map)
+        df_display = df[['timestamp', 'text', 'sentiment', 'topic_id']]
+        sentiments = df_display['sentiment'].unique().tolist()
+        selected_sentiment = st.selectbox("Filter berdasarkan Sentimen:", ["Semua"] + sentiments)
 
-            # Select and rename relevant columns
-            topic_info = topic_info[["Topic", "keywords", "Count"]].rename(columns={
-                "Topic": "cluster_id",
-                "Count": "docs_count"
-            })
+        cluster_ids = sorted(df_display['topic_id'].unique())
+        selected_cluster = st.selectbox("Filter berdasarkan Topik/Cluster ID:", ["Semua"] + cluster_ids)
 
-            # Display in Streamlit
-            st.dataframe(topic_info)
+        filtered_df = df_display.copy()
+        if selected_sentiment != "Semua":
+            filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
+        if selected_cluster != "Semua":
+            filtered_df = filtered_df[filtered_df["topic_id"] == selected_cluster]
 
-            # Tampilkan tabel topik
-            st.subheader("📋 Dataset dengan Label")
-            # Filter Sentiment
-            df = df[['timestamp', 'text', 'sentiment', 'topic_id']]
-            sentiments = df['sentiment'].unique().tolist()
-            selected_sentiment = st.selectbox("Filter berdasarkan Sentimen:", ["Semua"] + sentiments)
-        
-            # Filter Cluster
-            cluster_ids = sorted(df['topic_id'].unique())
-            selected_cluster = st.selectbox("Filter berdasarkan Topik/Cluster ID:", ["Semua"] + cluster_ids)
-        
-            filtered_df = df.copy()
-        
-            if selected_sentiment != "Semua":
-                filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
-        
-            if selected_cluster != "Semua":
-                filtered_df = filtered_df[filtered_df["topic_id"] == selected_cluster]
-        
-            st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
-        else:
-            st.error("❌ File harus memiliki kolom: timestamp dan text")
+        st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
+
 
 if __name__ == "__main__":
     main()
+
 
 
 
