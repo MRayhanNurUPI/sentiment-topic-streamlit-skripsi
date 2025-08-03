@@ -174,8 +174,6 @@ def plot_sentiment_pie(df):
 
 
 def plot_sentiment_bar(df):
-    st.subheader("📊 Distribusi Sentimen (Bar Chart Interaktif)")
-
     sentiment_colors = {
         "positif": '#66bb6a',
         "netral": '#b0bec5',
@@ -252,7 +250,6 @@ def plot_sentiment_per_topic(df, topic_model):
     st.pyplot(fig)
 
 def show_filtered_dataframe(df):
-    st.subheader("📄 Dataframe Hasil Analisis")
 
     # Filter Sentiment
     sentiments = df['sentiment'].unique().tolist()
@@ -363,11 +360,12 @@ def main():
 
             # Tampilkan tabel topik
             st.subheader("📋 Dataset dengan Label")
-            show_filtered_dataframe(df)
+            show_filtered_dataframe(df[['timestamp', 'text', 'sentiment', 'topic_id'])
         else:
             st.error("❌ File harus memiliki kolom: timestamp dan text")
 
 if __name__ == "__main__":
     main()
+
 
 
