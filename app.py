@@ -80,7 +80,7 @@ def run_bertopic_model(texts):
 
 def main():
     st.set_page_config(layout="wide")
-    st.title("Analisis Sentimen dan Topik pada Cuitan Twitter")
+    st.title("Analisis Sentimen dan Pemodelan Topik menggunakan Fine-tuning IndoBERT & BERTopic")
     uploaded_file = st.file_uploader("Unggah file CSV", type="csv")
 
     if uploaded_file:
@@ -132,6 +132,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
