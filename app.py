@@ -94,7 +94,7 @@ def main():
             df = df[df["relevan"] == 1]
 
             sent_tokenizer, sent_model, sent_names = load_sentiment_model()
-            df["sentiment"] = predict_sentiment_batch(df["clean_text"], sent_tokenizer, sent_model, sent_names)
+            df["sentiment"] = predict_sentiment_batch(df["clean_text"])
 
             topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
             df["topic_id"] = topics
@@ -131,4 +131,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
