@@ -360,12 +360,13 @@ def main():
 
             # Tampilkan tabel topik
             st.subheader("📋 Dataset dengan Label")
-            show_filtered_dataframe(df[['timestamp', 'text', 'sentiment', 'topic_id'])
+            show_filtered_dataframe(df[['timestamp', 'text', 'sentiment', 'topic_id']])
         else:
             st.error("❌ File harus memiliki kolom: timestamp dan text")
 
 if __name__ == "__main__":
     main()
+
 
 
 
