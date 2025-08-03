@@ -56,11 +56,11 @@ def predict_relevansi(texts, tokenizer, model, batch_size=16):
         labels.extend([0 if t not in batch_clean else 1 for t in batch_texts])
     return labels
 
-def predict_sentiment_batch(texts, tokenizer, model, class_names, batch_size=16):
+def predict_sentiment_batch(texts, batch_size=32):
     sentiments = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i + batch_size]
-        inputs = tokenizer(batch_texts, return_tensors='pt', padding=True, truncation=True).to(device)
+        inputs = tokenizer(batch_texts.tolist(), return_tensors='pt', padding=True, truncation=True, max_length=256)
         with torch.inference_mode():
             preds = torch.argmax(model(**inputs).logits, dim=1)
         sentiments.extend([class_names[p] for p in preds])
@@ -131,3 +131,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
