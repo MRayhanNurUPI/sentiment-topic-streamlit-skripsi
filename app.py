@@ -363,10 +363,11 @@ def main():
 
             # Tampilkan tabel topik
             st.subheader("📋 Dataset dengan Label")
-            show_filtered_dataframe(your_dataframe)
+            show_filtered_dataframe(df)
         else:
             st.error("❌ File harus memiliki kolom: timestamp dan text")
 
 if __name__ == "__main__":
     main()
+
 
