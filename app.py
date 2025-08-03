@@ -251,6 +251,27 @@ def plot_sentiment_per_topic(df, topic_model):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     st.pyplot(fig)
 
+def show_filtered_dataframe(df):
+    st.subheader("📄 Dataframe Hasil Analisis")
+
+    # Filter Sentiment
+    sentiments = df['sentiment'].unique().tolist()
+    selected_sentiment = st.selectbox("Filter berdasarkan Sentimen:", ["Semua"] + sentiments)
+
+    # Filter Cluster
+    cluster_ids = sorted(df['topic_id'].unique())
+    selected_cluster = st.selectbox("Filter berdasarkan Topik/Cluster ID:", ["Semua"] + cluster_ids)
+
+    filtered_df = df.copy()
+
+    if selected_sentiment != "Semua":
+        filtered_df = filtered_df[filtered_df["sentiment"] == selected_sentiment]
+
+    if selected_cluster != "Semua":
+        filtered_df = filtered_df[filtered_df["topic_id"] == selected_cluster]
+
+    st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
+
 # === MAIN APP ===
 def main():
     st.title("\U0001F4D1 Analisis Sentimen & Topik Berbasis IndoBERT + BERTopic")
@@ -291,8 +312,8 @@ def main():
             ## VISUALISASI DAN OUTPUT
             
             # Visualisasi Pie Chart Sentimen
-            st.subheader("📊 Distribusi Sentimen (Pie Chart)")
-            plot_sentiment_pie(df)
+            # st.subheader("📊 Distribusi Sentimen (Pie Chart)")
+            # plot_sentiment_pie(df)
 
             # Visualisasi Bar Chart Sentimen
             st.subheader("📊 Distribusi Sentimen (Bar Chart Interaktif)")
@@ -339,8 +360,13 @@ def main():
 
             # Display in Streamlit
             st.dataframe(topic_info)
+
+            # Tampilkan tabel topik
+            st.subheader("📋 Dataset dengan Label")
+            show_filtered_dataframe(your_dataframe)
         else:
             st.error("❌ File harus memiliki kolom: timestamp dan text")
 
 if __name__ == "__main__":
     main()
+
