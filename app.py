@@ -56,7 +56,7 @@ def predict_relevansi(texts, tokenizer, model, batch_size=16):
         labels.extend([0 if t not in batch_clean else 1 for t in batch_texts])
     return labels
 
-def predict_sentiment_batch(texts, batch_size=32):
+def predict_sentiment_batch(texts, tokenizer, model, class_names, batch_size=32):
     sentiments = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i + batch_size]
@@ -94,7 +94,7 @@ def main():
             df = df[df["relevan"] == 1]
 
             sent_tokenizer, sent_model, sent_names = load_sentiment_model()
-            df["sentiment"] = predict_sentiment_batch(df["clean_text"])
+            df["sentiment"] = predict_sentiment_batch(df["clean_text"], sent_tokenizer, sent_model, sent_names)
 
             topic_model, topics = run_bertopic_model(df["clean_text"].tolist())
             df["topic_id"] = topics
@@ -131,5 +131,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
