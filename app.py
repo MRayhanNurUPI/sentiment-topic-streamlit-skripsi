@@ -293,9 +293,10 @@ def main():
 
                 st.info("📌 Memfilter teks relevan...")
                 relevansi_tokenizer, relevansi_model = load_relevansi_model()
+                len_awal = len(df)
                 df["relevan"] = predict_relevansi(df["clean_text"].tolist(), relevansi_tokenizer, relevansi_model)
                 df = df[df["relevan"] == 1].reset_index(drop=True)
-                st.success(f"✅ Ditemukan {len(df)} teks relevan dari {len(df) + df['relevan'].value_counts().get(0, 0)} total baris data.")
+                st.success(f"✅ Ditemukan {len(df)} teks relevan dari {len_awal} total baris data.")
 
                 st.info("⏳ Memproses prediksi sentimen...")
                 df["sentiment"] = predict_sentiment_batch(df["clean_text"].tolist(), tokenizer, model, class_names)
@@ -372,6 +373,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
