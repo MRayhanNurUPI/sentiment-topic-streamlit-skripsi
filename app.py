@@ -113,7 +113,7 @@ def predict_sentiment_batch(texts, tokenizer, model, class_names, batch_size=16)
 def run_bertopic_model(texts):
     embedding_model = "all-MiniLM-L6-v2"
     umap_model = UMAP(n_neighbors=5, n_components=10, min_dist=0.1)
-    hdbscan_model = HDBSCAN(min_cluster_size = max(2, int(len(texts) * 0.006)), prediction_data=True)
+    hdbscan_model = HDBSCAN(min_cluster_size = max(8, int(len(texts) * 0.006)), prediction_data=True)
 
     custom_stopwords = [
     "ya", "gue", 'gwehh', "banget", "kalo", 'bro'
@@ -373,6 +373,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
